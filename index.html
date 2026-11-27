@@ -449,6 +449,22 @@
   </div>
 </div>
 
+<!-- MODAL TASA DE CAMBIO -->
+<div id="rateModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="row-between" style="margin-bottom:10px;">
+      <h3 style="margin:0;">Modificación de tasa de cambio</h3>
+      <button class="icon-btn" onclick="closeModal('rateModal')">Cerrar</button>
+    </div>
+    <label class="muted">Nueva tasa Bs / USD</label>
+    <input id="rateInput" type="text" inputmode="decimal" style="margin:6px 0 12px;font-size:18px;font-weight:700;" />
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('rateModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNewRate()">Guardar Tasa</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL QR / DATOS PAGO MÓVIL -->
 <div id="qrModal" class="modal-backdrop">
   <div class="modal">
@@ -1077,11 +1093,18 @@
     `).join('');
   }
 
-  async function promptRate() {
-    const val = prompt('Nueva tasa Bs / USD:', state.rate);
-    if (!val) return;
+  function promptRate() {
+    const input = document.getElementById('rateInput');
+    input.value = state.rate;
+    document.getElementById('rateModal').classList.add('open');
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+  }
+
+  async function saveNewRate() {
+    const val = document.getElementById('rateInput').value.trim();
     const num = Number(val.replace(',', '.'));
     if (!num || num <= 0) return showToast('Tasa inválida', '#dc2626');
+    closeModal('rateModal');
     state.rate = num;
     saveLocal();
     renderAll();
