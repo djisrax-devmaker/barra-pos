@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>IRLY Barra POS</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-2: #283548;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 136px;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand { font-weight: 800; font-size: 16px; letter-spacing: 0.2px; }
+    .sub-status { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+    .rate-pill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .icon-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .container { padding: 12px; max-width: 640px; margin: 0 auto; }
+    .mode-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .mode-btn {
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .mode-btn.active {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .tab-target-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 12px;
+      display: none;
+      gap: 8px;
+      flex-direction: column;
+    }
+    .tab-target-box.show { display: flex; }
+    input, select, textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .drink-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 112px;
+      position: relative;
+      user-select: none;
+      cursor: pointer;
+      transition: transform 0.08s, border-color 0.12s;
+    }
+    .drink-card:active { transform: scale(0.97); }
+    .drink-card.selected { border-color: var(--accent); background: #1a2d47; }
+    .drink-card.empty { opacity: 0.48; }
+    .drink-title { font-weight: 700; font-size: 14px; line-height: 1.25; margin-bottom: 4px; padding-right: 22px; }
+    .drink-cat { font-size: 11px; color: var(--muted); }
+    .drink-prices { margin-top: 8px; display: flex; justify-content: space-between; align-items: baseline; }
+    .price-usd { font-weight: 800; font-size: 16px; color: var(--green); }
+    .price-bs { font-size: 11px; color: var(--muted); }
+    .stock-badge {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(34, 197, 94, 0.14);
+      color: var(--green);
+      align-self: flex-start;
+    }
+    .stock-badge.low { background: rgba(245, 158, 11, 0.18); color: var(--amber); }
+    .stock-badge.out { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+    .qty-pill {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--accent);
+      color: #0f172a;
+      font-weight: 900;
+      font-size: 13px;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+    }
+    .cart-bar {
+      position: fixed;
+      bottom: 60px;
+      left: 0;
+      right: 0;
+      background: var(--card-2);
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      z-index: 25;
+    }
+    .cart-bar.show { display: flex; }
+    .cart-info { font-size: 13px; line-height: 1.3; }
+    .cart-info strong { font-size: 16px; color: var(--green); }
+    .cart-actions { display: flex; gap: 8px; }
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn-primary { background: var(--green); color: #052e16; }
+    .btn-accent { background: var(--accent); color: #082f49; }
+    .btn-amber { background: var(--amber); color: #451a03; }
+    .btn-danger { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid rgba(239,68,68,0.4); }
+    .btn-ghost { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: #0b1120;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      z-index: 30;
+    }
+    .nav-item {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+    .nav-item.active { color: var(--accent); }
+    .view { display: none; }
+    .view.active { display: block; }
+    .list-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .row-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+    .kpi-val { font-size: 20px; font-weight: 800; margin-top: 4px; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.8);
+      z-index: 50;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--card);
+      width: 100%;
+      max-width: 540px;
+      max-height: 92vh;
+      overflow-y: auto;
+      border-radius: 18px 18px 0 0;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .pay-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+    .pay-chip {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .pay-chip.active { border-color: var(--green); background: rgba(34,197,94,0.16); color: var(--green); }
+    .preview-img { max-width: 100%; max-height: 160px; border-radius: 8px; margin-top: 8px; border: 1px solid var(--border); display: none; }
+    .cart-items-mini { margin: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px 0; }
+    .cart-item-line { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; }
+    .mini-qty-btns button {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      width: 28px; height: 28px; border-radius: 6px; font-weight: 800; margin-left: 4px;
+    }
+    .toast {
+      position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+      background: #0284c7; color: #fff; padding: 9px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 700; z-index: 60; display: none; box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">🍹 IRLY Barra POS</div>
+    <div class="sub-status">
+      <span id="connDot">🟡 Cargando...</span>
+      <span id="queueBadge" style="display:none;color:var(--amber);font-weight:700;"></span>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;">
+    <button class="rate-pill" id="rateBtn" onclick="promptRate()">Bs 926.36/$</button>
+    <button class="icon-btn" onclick="openQrModal()" title="Mi QR de cobro">QR</button>
+    <button class="icon-btn" onclick="syncAll()" title="Sincronizar">↻</button>
+  </div>
+</header>
+
+<div id="setupBanner" onclick="openConfigModal()" style="display:none;background:#78350f;color:#fef3c7;padding:8px 14px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;">
+  ⚙️ Falta pegar tu URL /exec de Apps Script (toca aquí para configurar)
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div class="container">
+  <!-- VISTA 1: BARRA / VENTA -->
+  <div id="view-barra" class="view active">
+    <div class="mode-bar">
+      <button id="modeRapida" class="mode-btn active" onclick="setOrderMode('Rapida')">⚡ Venta Rápida</button>
+      <button id="modeCuenta" class="mode-btn" onclick="setOrderMode('Cuenta Abierta')">🧾 Cuenta Abierta</button>
+    </div>
+
+    <div id="tabTargetBox" class="tab-target-box">
+      <select id="existingTabSelect" onchange="onTabSelectChange()">
+        <option value="__NEW__">+ Nueva cuenta abierta...</option>
+      </select>
+      <input id="newTabName" type="text" placeholder="Nombre o mesa (ej. Mesa 3 / Carlos)" />
+    </div>
+
+    <div id="menuGrid" class="menu-grid"></div>
+  </div>
+
+  <!-- VISTA 2: CUENTAS ABIERTAS -->
+  <div id="view-cuentas" class="view">
+    <div class="row-between" style="margin-bottom:10px;">
+      <h3 style="margin:0;">Cuentas Abiertas</h3>
+      <span class="muted" id="openTabsCount">0 activas</span>
+    </div>
+    <div id="openTabsList"></div>
+  </div>
+
+  <!-- VISTA 3: CAJA E HISTORIAL -->
+  <div id="view-caja" class="view">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="muted">Vendido Pagado ($)</div>
+        <div class="kpi-val" id="kpiTotalUsd" style="color:var(--green);">$0.00</div>
+        <div class="muted" id="kpiTotalBs">Bs 0</div>
+      </div>
+      <div class="kpi">
+        <div class="muted">En Cuentas Abiertas</div>
+        <div class="kpi-val" id="kpiOpenUsd" style="color:var(--amber);">$0.00</div>
+        <div class="muted" id="kpiCountPaid">0 ventas cerradas</div>
+      </div>
+    </div>
+
+    <div class="list-card" id="methodBreakdown" style="font-size:13px;line-height:1.6;"></div>
+
+    <div class="row-between" style="margin:12px 0 8px;">
+      <h4 style="margin:0;">Historial reciente</h4>
+      <div style="display:flex;gap:6px;">
+        <button class="icon-btn" onclick="openConfigModal()">⚙️ API/Stock</button>
+        <a id="sheetLinkBtn" href="#" target="_blank" class="icon-btn" style="text-decoration:none;display:none;">📊 Sheet</a>
+      </div>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- BARRA FLOTANTE CARRITO -->
+<div id="cartBar" class="cart-bar">
+  <div class="cart-info" onclick="openCheckoutModal()">
+    <div id="cartCountLabel">0 ítems · Ver detalle</div>
+    <strong id="cartTotalLabel">$0.00 / Bs 0</strong>
+  </div>
+  <div class="cart-actions">
+    <button class="btn btn-ghost" onclick="clearCart()" style="padding:10px 12px;">✕</button>
+    <button id="cartPrimaryBtn" class="btn btn-primary" onclick="openCheckoutModal()">Cobrar →</button>
+  </div>
+</div>
+
+<!-- NAV INFERIOR -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="switchView('barra', this)"><span>🍹</span><span>Barra</span></button>
+  <button class="nav-item" onclick="switchView('cuentas', this)"><span>🧾</span><span>Cuentas (<span id="navOpenBadge">0</span>)</span></button>
+  <button class="nav-item" onclick="switchView('caja', this)"><span>💰</span><span>Caja</span></button>
+</nav>
+
+<!-- MODAL COBRO / DETALLE CARRITO -->
+<div id="checkoutModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="row-between">
+      <h3 style="margin:0;" id="checkoutTitle">Cobrar Pedido</h3>
+      <button class="icon-btn" onclick="closeModal('checkoutModal')">Cerrar</button>
+    </div>
+
+    <div id="checkoutItemsList" class="cart-items-mini"></div>
+
+    <div class="row-between" style="margin:8px 0;">
+      <div>
+        <div class="muted">Total a cobrar</div>
+        <div style="font-size:22px;font-weight:900;color:var(--green);" id="chkUsd">$0.00</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="muted" id="chkRateNote">Tasa Bs 926.36</div>
+        <div style="font-size:18px;font-weight:800;color:var(--accent);" id="chkBs">Bs 0</div>
+      </div>
+    </div>
+
+    <div id="paymentFieldsSection">
+      <div class="muted" style="margin-top:6px;">Método de pago</div>
+      <div class="pay-methods">
+        <button class="pay-chip active" onclick="selectPayMethod('Pago Móvil', this)">📱 Pago Móvil (Bs)</button>
+        <button class="pay-chip" onclick="selectPayMethod('Efectivo $', this)">💵 Efectivo ($)</button>
+        <button class="pay-chip" onclick="selectPayMethod('Zelle / Binance', this)">🏦 Zelle / Binance</button>
+        <button class="pay-chip" onclick="selectPayMethod('Efectivo Bs', this)">💴 Efectivo (Bs)</button>
+        <button class="pay-chip" onclick="selectPayMethod('Mixto', this)" style="grid-column:span 2;">🔀 Pago Mixto ($ + Bs)</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <label class="muted">Recibido USD ($)</label>
+          <input id="paidUsdInput" type="number" step="0.01" inputmode="decimal" oninput="onPaidUsdChange()" />
+        </div>
+        <div>
+          <label class="muted">Recibido Bs</label>
+          <input id="paidBsInput" type="number" step="0.01" inputmode="decimal" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <label class="muted">Cliente / Nota (opcional)</label>
+        <input id="orderCustomerInput" type="text" placeholder="Ej. Mesa 2 / Ref. 4812" />
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label class="muted">Capture de pago (opcional — se comprime automático)</label>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <label class="btn btn-ghost" style="flex:1;text-align:center;font-size:13px;">
+            🖼️ Galería / Archivo
+            <input type="file" accept="image/*" style="display:none;" onchange="handleFileSelect(event)" />
+          </label>
+          <label class="btn btn-ghost" style="flex:1;text-align:center;font-size:13px;">
+            📷 Cámara
+            <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleFileSelect(event)" />
+          </label>
+        </div>
+        <img id="capturePreview" class="preview-img" />
+        <div id="captureSizeNote" class="muted" style="margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <button id="confirmOrderBtn" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;" onclick="submitCheckout()">
+      ✅ Confirmar Compra Exitosa
+    </button>
+  </div>
+</div>
+
+<!-- MODAL QR / DATOS PAGO MÓVIL -->
+<div id="qrModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="row-between" style="margin-bottom:10px;">
+      <h3 style="margin:0;">Mi QR / Datos de Pago</h3>
+      <button class="icon-btn" onclick="closeModal('qrModal')">Cerrar</button>
+    </div>
+    <div id="qrDisplayBox" style="text-align:center;margin-bottom:12px;">
+      <img id="savedQrImg" style="max-width:240px;border-radius:12px;display:none;margin:0 auto 8px;" />
+      <pre id="savedPayText" style="white-space:pre-wrap;background:var(--bg);padding:10px;border-radius:8px;font-size:14px;text-align:left;"></pre>
+    </div>
+    <label class="btn btn-ghost" style="display:block;text-align:center;margin-bottom:8px;">
+      📤 Cargar imagen QR (se guarda en este teléfono)
+      <input type="file" accept="image/*" style="display:none;" onchange="saveQrImage(event)" />
+    </label>
+    <textarea id="payTextEdit" rows="3" placeholder="Pega aquí tus datos de Pago Móvil / Zelle para mostrar rápido en barra..."></textarea>
+    <button class="btn btn-accent" style="width:100%;margin-top:8px;" onclick="savePayText()">Guardar Datos</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIGURACIÓN / AJUSTE STOCK -->
+<div id="configModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="row-between" style="margin-bottom:10px;">
+      <h3 style="margin:0;">Ajustes y Stock</h3>
+      <button class="icon-btn" onclick="closeModal('configModal')">Cerrar</button>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="muted">URL Web App Apps Script (solo si usas este HTML fuera de Google)</label>
+      <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+      <button class="btn btn-accent" style="width:100%;margin-top:6px;" onclick="saveApiUrl()">Guardar URL</button>
+    </div>
+    <div class="muted" style="margin-bottom:6px;">Ajustar Stock Inicial rápido:</div>
+    <div id="stockAdjustList"></div>
+  </div>
+</div>
+
+<script>
+  const LS_KEY = 'irly_barra_pos_v1';
+  const IS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+
+  let state = {
+    rate: 926.36,
+    sheetUrl: '',
+    menu: [],
+    orders: [],
+    queue: [],
+    apiUrl: '',
+    qrImg: '',
+    payText: ''
+  };
+
+  let cart = {}; // { menuId: qty }
+  let orderMode = 'Rapida'; // 'Rapida' | 'Cuenta Abierta'
+  let payingExistingId = null; // si estamos cobrando una cuenta abierta existente
+  let selectedPayMethod = 'Pago Móvil';
+  let captureBase64 = '';
+
+  function loadLocal() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+      Object.assign(state, saved);
+    } catch (_) {}
+  }
+
+  function saveLocal() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        rate: state.rate,
+        sheetUrl: state.sheetUrl,
+        menu: state.menu,
+        orders: state.orders,
+        queue: state.queue,
+        apiUrl: state.apiUrl,
+        qrImg: state.qrImg,
+        payText: state.payText
+      }));
+    } catch (_) {}
+  }
+
+  function showToast(msg, bg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = bg || '#0284c7';
+    el.style.display = 'block';
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2800);
+  }
+
+  function callBackend(fnName, payload) {
+    return new Promise((resolve, reject) => {
+      if (IS_GAS) {
+        const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+        if (fnName === 'getInitialData') runner.getInitialData();
+        else if (fnName === 'createOrAddOrder') runner.createOrAddOrder(payload);
+        else if (fnName === 'payOrder') runner.payOrder(payload);
+        else if (fnName === 'updateExchangeRate') runner.updateExchangeRate(payload);
+        else if (fnName === 'adjustMenuStock') runner.adjustMenuStock(payload.id, payload.stockInicial);
+        return;
+      }
+      if (!state.apiUrl) {
+        reject(new Error('Sin URL de Apps Script configurada'));
+        return;
+      }
+      if (fnName === 'getInitialData') {
+        fetch(state.apiUrl + '?api=1')
+          .then(r => r.json())
+          .then(resolve)
+          .catch(reject);
+      } else {
+        const actionMap = {
+          createOrAddOrder: { action: 'create_or_add_order', data: payload },
+          payOrder: { action: 'pay_order', data: payload },
+          updateExchangeRate: { action: 'update_rate', rate: payload },
+          adjustMenuStock: { action: 'adjust_stock', id: payload.id, stockInicial: payload.stockInicial }
+        };
+        fetch(state.apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(actionMap[fnName])
+        })
+          .then(r => r.json())
+          .then(resolve)
+          .catch(reject);
+      }
+    });
+  }
+
+  async function syncAll() {
+    setConnStatus('🟡 Sincronizando...');
+    try {
+      await flushQueue();
+      const res = await callBackend('getInitialData');
+      if (res && res.ok) {
+        state.rate = res.rate || state.rate;
+        state.menu = res.menu || [];
+        state.orders = res.orders || [];
+        if (res.sheetUrl) state.sheetUrl = res.sheetUrl;
+        saveLocal();
+        renderAll();
+        setConnStatus('🟢 Conectado a Sheets');
+      }
+    } catch (err) {
+      setConnStatus('🔴 Modo Offline (local)');
+      renderAll();
+    }
+  }
+
+  async function flushQueue() {
+    if (!state.queue.length) return;
+    const remaining = [];
+    for (let i = 0; i < state.queue.length; i++) {
+      const job = state.queue[i];
+      try {
+        await callBackend(job.fn, job.payload);
+      } catch (err) {
+        remaining.push(job);
+      }
+    }
+    state.queue = remaining;
+    saveLocal();
+    if (!remaining.length) showToast('✅ Pendientes sincronizados', '#16a34a');
+  }
+
+  function setConnStatus(txt) {
+    document.getElementById('connDot').textContent = txt;
+    const qb = document.getElementById('queueBadge');
+    if (state.queue.length > 0) {
+      qb.style.display = 'inline';
+      qb.textContent = `· ${state.queue.length} en cola`;
+    } else {
+      qb.style.display = 'none';
+    }
+  }
+
+  function renderAll() {
+    const sb = document.getElementById('setupBanner');
+    if (sb) sb.style.display = (!IS_GAS && !state.apiUrl) ? 'block' : 'none';
+    document.getElementById('rateBtn').textContent = `Bs ${Number(state.rate).toFixed(2)}/$`;
+    const sl = document.getElementById('sheetLinkBtn');
+    if (state.sheetUrl) { sl.href = state.sheetUrl; sl.style.display = 'inline-block'; }
+    renderMenu();
+    renderTabSelector();
+    renderOpenTabs();
+    renderCaja();
+    renderCartBar();
+    setConnStatus(document.getElementById('connDot').textContent);
+  }
+
+  function renderMenu() {
+    const grid = document.getElementById('menuGrid');
+    grid.innerHTML = '';
+    state.menu.forEach(item => {
+      const inCart = cart[item.id] || 0;
+      const disp = item.disponibles - inCart;
+      const precioBs = Math.round(item.precioUsd * state.rate);
+      const card = document.createElement('div');
+      card.className = 'drink-card' + (inCart > 0 ? ' selected' : '') + (disp <= 0 ? ' empty' : '');
+      card.onclick = () => addToCart(item.id);
+
+      let badgeCls = 'stock-badge';
+      let badgeTxt = `Quedan ${disp}`;
+      if (disp <= 0) { badgeCls += ' out'; badgeTxt = 'AGOTADO'; }
+      else if (disp <= 3) { badgeCls += ' low'; }
+
+      card.innerHTML = `
+        ${inCart > 0 ? `<div class="qty-pill">${inCart}</div>` : ''}
+        <div>
+          <div class="drink-title">${esc(item.producto)}</div>
+          <div class="drink-cat">${esc(item.categoria)}</div>
+        </div>
+        <div>
+          <div class="drink-prices">
+            <span class="price-usd">${item.precioUsd === 0 ? 'Cortesía' : '$' + item.precioUsd.toFixed(2)}</span>
+            <span class="price-bs">${item.precioUsd === 0 ? 'Bs 0' : 'Bs ' + precioBs.toLocaleString('es-VE')}</span>
+          </div>
+          <span class="${badgeCls}">${badgeTxt}</span>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function addToCart(id) {
+    cart[id] = (cart[id] || 0) + 1;
+    renderMenu();
+    renderCartBar();
+  }
+
+  function changeCartQty(id, delta) {
+    const next = (cart[id] || 0) + delta;
+    if (next <= 0) delete cart[id];
+    else cart[id] = next;
+    renderMenu();
+    renderCartBar();
+    if (document.getElementById('checkoutModal').classList.contains('open') && !payingExistingId) {
+      if (!Object.keys(cart).length) closeModal('checkoutModal');
+      else populateCheckoutFromCart();
+    }
+  }
+
+  function clearCart() {
+    cart = {};
+    renderMenu();
+    renderCartBar();
+  }
+
+  function getCartItemsArray() {
+    return Object.keys(cart).map(id => {
+      const m = state.menu.find(x => x.id === id);
+      return { id, nombre: m ? m.producto : id, precioUsd: m ? m.precioUsd : 0, qty: cart[id] };
+    });
+  }
+
+  function renderCartBar() {
+    const items = getCartItemsArray();
+    const bar = document.getElementById('cartBar');
+    if (!items.length) { bar.classList.remove('show'); return; }
+    bar.classList.add('show');
+    const count = items.reduce((a, b) => a + b.qty, 0);
+    const totalUsd = items.reduce((a, b) => a + b.qty * b.precioUsd, 0);
+    const totalBs = Math.round(totalUsd * state.rate);
+    document.getElementById('cartCountLabel').textContent = `${count} ítems · Editar`;
+    document.getElementById('cartTotalLabel').textContent = `$${totalUsd.toFixed(2)} / Bs ${totalBs.toLocaleString('es-VE')}`;
+    const btn = document.getElementById('cartPrimaryBtn');
+    if (orderMode === 'Rapida') {
+      btn.className = 'btn btn-primary';
+      btn.textContent = 'Cobrar →';
+    } else {
+      btn.className = 'btn btn-amber';
+      btn.textContent = 'A Cuenta →';
+    }
+  }
+
+  function setOrderMode(mode) {
+    orderMode = mode;
+    document.getElementById('modeRapida').classList.toggle('active', mode === 'Rapida');
+    document.getElementById('modeCuenta').classList.toggle('active', mode === 'Cuenta Abierta');
+    document.getElementById('tabTargetBox').classList.toggle('show', mode === 'Cuenta Abierta');
+    renderCartBar();
+  }
+
+  function renderTabSelector() {
+    const sel = document.getElementById('existingTabSelect');
+    const currentVal = sel.value;
+    const openTabs = state.orders.filter(o => o.estado === 'Abierta');
+    sel.innerHTML = '<option value="__NEW__">+ Nueva cuenta abierta...</option>';
+    openTabs.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.pedidoId;
+      opt.textContent = `${t.clienteMesa} ($${t.totalUsd.toFixed(2)})`;
+      sel.appendChild(opt);
+    });
+    if ([...sel.options].some(o => o.value === currentVal)) sel.value = currentVal;
+    onTabSelectChange();
+  }
+
+  function onTabSelectChange() {
+    const val = document.getElementById('existingTabSelect').value;
+    document.getElementById('newTabName').style.display = val === '__NEW__' ? 'block' : 'none';
+  }
+
+  function openCheckoutModal() {
+    payingExistingId = null;
+    captureBase64 = '';
+    resetCapturePreview();
+    if (orderMode === 'Cuenta Abierta') {
+      const selVal = document.getElementById('existingTabSelect').value;
+      const newName = document.getElementById('newTabName').value.trim();
+      if (selVal === '__NEW__' && !newName) {
+        showToast('Escribe el nombre o mesa de la cuenta', '#d97706');
+        document.getElementById('newTabName').focus();
+        return;
+      }
+      document.getElementById('checkoutTitle').textContent = selVal === '__NEW__' ? `Abrir Cuenta: ${newName}` : 'Sumar a Cuenta Abierta';
+      document.getElementById('paymentFieldsSection').style.display = 'none';
+      document.getElementById('confirmOrderBtn').textContent = '🧾 Guardar en Cuenta Abierta';
+      document.getElementById('confirmOrderBtn').className = 'btn btn-amber';
+    } else {
+      document.getElementById('checkoutTitle').textContent = 'Cobro Venta Rápida';
+      document.getElementById('paymentFieldsSection').style.display = 'block';
+      document.getElementById('confirmOrderBtn').textContent = '✅ Confirmar Compra Exitosa';
+      document.getElementById('confirmOrderBtn').className = 'btn btn-primary';
+    }
+    populateCheckoutFromCart();
+    document.getElementById('checkoutModal').classList.add('open');
+  }
+
+  function populateCheckoutFromCart() {
+    const items = getCartItemsArray();
+    const listEl = document.getElementById('checkoutItemsList');
+    listEl.innerHTML = items.map(it => `
+      <div class="cart-item-line">
+        <span>${it.qty}x ${esc(it.nombre)} ($${(it.qty * it.precioUsd).toFixed(2)})</span>
+        <span class="mini-qty-btns">
+          <button onclick="changeCartQty('${it.id}', -1)">-</button>
+          <button onclick="changeCartQty('${it.id}', 1)">+</button>
+        </span>
+      </div>
+    `).join('');
+
+    const totalUsd = items.reduce((a, b) => a + b.qty * b.precioUsd, 0);
+    setModalTotals(totalUsd);
+  }
+
+  function setModalTotals(totalUsd) {
+    const totalBs = Math.round(totalUsd * state.rate * 100) / 100;
+    document.getElementById('chkUsd').textContent = `$${totalUsd.toFixed(2)}`;
+    document.getElementById('chkBs').textContent = `Bs ${totalBs.toLocaleString('es-VE')}`;
+    document.getElementById('chkRateNote').textContent = `Tasa Bs ${state.rate.toFixed(2)}`;
+    window._currentModalTotalUsd = totalUsd;
+    applyDefaultPaidAmounts();
+  }
+
+  function selectPayMethod(method, btn) {
+    selectedPayMethod = method;
+    document.querySelectorAll('.pay-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyDefaultPaidAmounts();
+  }
+
+  function applyDefaultPaidAmounts() {
+    const usd = window._currentModalTotalUsd || 0;
+    const bs = Math.round(usd * state.rate * 100) / 100;
+    const usdIn = document.getElementById('paidUsdInput');
+    const bsIn = document.getElementById('paidBsInput');
+    if (selectedPayMethod === 'Pago Móvil' || selectedPayMethod === 'Efectivo Bs') {
+      usdIn.value = 0;
+      bsIn.value = bs.toFixed(2);
+    } else if (selectedPayMethod === 'Mixto') {
+      usdIn.value = '';
+      bsIn.value = bs.toFixed(2);
+    } else {
+      usdIn.value = usd.toFixed(2);
+      bsIn.value = 0;
+    }
+  }
+
+  function onPaidUsdChange() {
+    if (selectedPayMethod !== 'Mixto') return;
+    const totalUsd = window._currentModalTotalUsd || 0;
+    const paidUsd = Number(document.getElementById('paidUsdInput').value) || 0;
+    const remUsd = Math.max(0, totalUsd - paidUsd);
+    document.getElementById('paidBsInput').value = (remUsd * state.rate).toFixed(2);
+  }
+
+  function openPayExistingModal(pedidoId) {
+    const ord = state.orders.find(o => o.pedidoId === pedidoId);
+    if (!ord) return;
+    payingExistingId = pedidoId;
+    captureBase64 = '';
+    resetCapturePreview();
+    document.getElementById('checkoutTitle').textContent = `Cobrar: ${ord.clienteMesa}`;
+    document.getElementById('checkoutItemsList').innerHTML = `<div class="muted" style="padding:4px 0;">${esc(ord.resumen)}</div>`;
+    document.getElementById('paymentFieldsSection').style.display = 'block';
+    document.getElementById('orderCustomerInput').value = ord.clienteMesa;
+    document.getElementById('confirmOrderBtn').textContent = '✅ Cobrar y Cerrar Cuenta';
+    document.getElementById('confirmOrderBtn').className = 'btn btn-primary';
+    setModalTotals(ord.totalUsd);
+    document.getElementById('checkoutModal').classList.add('open');
+  }
+
+  function handleFileSelect(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 900;
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        captureBase64 = canvas.toDataURL('image/jpeg', 0.72);
+        const kb = Math.round(captureBase64.length * 0.75 / 1024);
+        const prev = document.getElementById('capturePreview');
+        prev.src = captureBase64;
+        prev.style.display = 'block';
+        document.getElementById('captureSizeNote').textContent = `Comprimido: ~${kb} KB listo para Drive`;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetCapturePreview() {
+    document.getElementById('capturePreview').style.display = 'none';
+    document.getElementById('capturePreview').src = '';
+    document.getElementById('captureSizeNote').textContent = '';
+  }
+
+  async function submitCheckout() {
+    const opId = 'OP-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    let fnName = 'createOrAddOrder';
+    let payload = null;
+
+    if (payingExistingId) {
+      fnName = 'payOrder';
+      payload = {
+        pedidoId: payingExistingId,
+        tasaUsada: state.rate,
+        metodoPago: selectedPayMethod,
+        pagadoUsd: Number(document.getElementById('paidUsdInput').value) || 0,
+        pagadoBs: Number(document.getElementById('paidBsInput').value) || 0,
+        captureBase64: captureBase64 || '',
+        notas: document.getElementById('orderCustomerInput').value.trim()
+      };
+      // Actualización optimista local
+      const ord = state.orders.find(o => o.pedidoId === payingExistingId);
+      if (ord) {
+        ord.estado = 'Pagada';
+        ord.metodoPago = payload.metodoPago;
+        ord.pagadoUsd = payload.pagadoUsd;
+        ord.pagadoBs = payload.pagadoBs;
+      }
+    } else {
+      const items = getCartItemsArray();
+      if (!items.length) return;
+      const isTab = orderMode === 'Cuenta Abierta';
+      const existingTabId = document.getElementById('existingTabSelect').value;
+      const appendExisting = isTab && existingTabId !== '__NEW__';
+      const newName = document.getElementById('newTabName').value.trim();
+      const customer = isTab
+        ? (appendExisting ? '' : newName)
+        : (document.getElementById('orderCustomerInput').value.trim() || 'Barra');
+
+      const pedId = appendExisting ? existingTabId : ('PED-' + Date.now().toString().slice(-6));
+      payload = {
+        opId,
+        pedidoId: pedId,
+        appendToExisting: appendExisting,
+        tipo: isTab ? 'Cuenta Abierta' : 'Rapida',
+        clienteMesa: customer,
+        items,
+        tasaUsada: state.rate,
+        estado: isTab ? 'Abierta' : 'Pagada',
+        metodoPago: isTab ? '' : selectedPayMethod,
+        pagadoUsd: isTab ? 0 : (Number(document.getElementById('paidUsdInput').value) || 0),
+        pagadoBs: isTab ? 0 : (Number(document.getElementById('paidBsInput').value) || 0),
+        captureBase64: isTab ? '' : (captureBase64 || ''),
+        notas: ''
+      };
+
+      // Optimista local
+      items.forEach(it => {
+        const m = state.menu.find(x => x.id === it.id);
+        if (m) { m.vendidos += it.qty; m.disponibles -= it.qty; }
+      });
+      if (appendExisting) {
+        const ord = state.orders.find(o => o.pedidoId === existingTabId);
+        if (ord) {
+          ord.totalUsd += items.reduce((a, b) => a + b.qty * b.precioUsd, 0);
+          ord.totalBs = Math.round(ord.totalUsd * state.rate);
+          ord.resumen += ', ' + items.map(i => `${i.qty}x ${i.nombre}`).join(', ');
+        }
+      } else {
+        const totUsd = items.reduce((a, b) => a + b.qty * b.precioUsd, 0);
+        state.orders.unshift({
+          pedidoId: pedId,
+          fechaHora: 'Ahora',
+          tipo: payload.tipo,
+          clienteMesa: customer,
+          items,
+          resumen: items.map(i => `${i.qty}x ${i.nombre}`).join(', '),
+          totalUsd: totUsd,
+          totalBs: Math.round(totUsd * state.rate),
+          tasaUsada: state.rate,
+          metodoPago: payload.metodoPago,
+          pagadoUsd: payload.pagadoUsd,
+          pagadoBs: payload.pagadoBs,
+          estado: payload.estado,
+          captureUrl: ''
+        });
+      }
+      clearCart();
+      document.getElementById('newTabName').value = '';
+      document.getElementById('orderCustomerInput').value = '';
+    }
+
+    closeModal('checkoutModal');
+    saveLocal();
+    renderAll();
+    showToast('Guardando en Sheets...', '#0284c7');
+
+    try {
+      const res = await callBackend(fnName, payload);
+      if (res && res.ok) {
+        state.rate = res.rate || state.rate;
+        state.menu = res.menu || state.menu;
+        state.orders = res.orders || state.orders;
+        saveLocal();
+        renderAll();
+        setConnStatus('🟢 Conectado a Sheets');
+        showToast('✅ Compra guardada en Sheets/Drive', '#16a34a');
+      }
+    } catch (err) {
+      state.queue.push({ fn: fnName, payload });
+      saveLocal();
+      setConnStatus('🔴 Guardado local (sin red)');
+      renderAll();
+      showToast('⚠️ Sin señal: guardado en cola local', '#d97706');
+    }
+  }
+
+  function renderOpenTabs() {
+    const open = state.orders.filter(o => o.estado === 'Abierta');
+    document.getElementById('navOpenBadge').textContent = open.length;
+    document.getElementById('openTabsCount').textContent = `${open.length} activas`;
+    const list = document.getElementById('openTabsList');
+    if (!open.length) {
+      list.innerHTML = '<div class="list-card muted">No hay cuentas abiertas en este momento.</div>';
+      return;
+    }
+    list.innerHTML = open.map(o => `
+      <div class="list-card">
+        <div class="row-between">
+          <div>
+            <strong style="font-size:16px;">${esc(o.clienteMesa)}</strong>
+            <div class="muted">${esc(o.pedidoId)} · ${esc(o.fechaHora)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:18px;font-weight:900;color:var(--green);">$${o.totalUsd.toFixed(2)}</div>
+            <div class="muted">Bs ${Math.round(o.totalUsd * state.rate).toLocaleString('es-VE')}</div>
+          </div>
+        </div>
+        <div style="margin:8px 0;font-size:13px;color:#cbd5e1;">${esc(o.resumen)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="btn btn-ghost" onclick="addToExistingTab('${o.pedidoId}')">+ Agregar tragos</button>
+          <button class="btn btn-primary" onclick="openPayExistingModal('${o.pedidoId}')">💳 Cobrar</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function addToExistingTab(pedidoId) {
+    setOrderMode('Cuenta Abierta');
+    document.getElementById('existingTabSelect').value = pedidoId;
+    onTabSelectChange();
+    const barraBtn = document.querySelectorAll('.nav-item')[0];
+    switchView('barra', barraBtn);
+  }
+
+  function renderCaja() {
+    const paid = state.orders.filter(o => o.estado === 'Pagada');
+    const open = state.orders.filter(o => o.estado === 'Abierta');
+    const totUsd = paid.reduce((a, b) => a + (b.totalUsd || 0), 0);
+    const openUsd = open.reduce((a, b) => a + (b.totalUsd || 0), 0);
+    const totBsRec = paid.reduce((a, b) => a + (b.pagadoBs || 0), 0);
+    const totUsdRec = paid.reduce((a, b) => a + (b.pagadoUsd || 0), 0);
+
+    document.getElementById('kpiTotalUsd').textContent = `$${totUsd.toFixed(2)}`;
+    document.getElementById('kpiTotalBs').textContent = `Bs ${Math.round(totUsd * state.rate).toLocaleString('es-VE')}`;
+    document.getElementById('kpiOpenUsd').textContent = `$${openUsd.toFixed(2)}`;
+    document.getElementById('kpiCountPaid').textContent = `${paid.length} ventas cerradas`;
+
+    document.getElementById('methodBreakdown').innerHTML = `
+      <div><strong>Recibido real en caja:</strong></div>
+      <div>💵 USD recibidos: <strong>$${totUsdRec.toFixed(2)}</strong></div>
+      <div>📱 Bolívares recibidos: <strong>Bs ${totBsRec.toLocaleString('es-VE')}</strong></div>
+    `;
+
+    const hist = document.getElementById('historyList');
+    if (!state.orders.length) {
+      hist.innerHTML = '<div class="list-card muted">Aún no hay pedidos registrados.</div>';
+      return;
+    }
+    hist.innerHTML = state.orders.slice(0, 40).map(o => `
+      <div class="list-card">
+        <div class="row-between">
+          <strong>${esc(o.clienteMesa)} <span class="muted">(${esc(o.tipo)})</span></strong>
+          <span style="font-weight:800;color:${o.estado === 'Pagada' ? 'var(--green)' : 'var(--amber)'};">
+            ${o.estado === 'Pagada' ? '✅' : '⏳'} $${o.totalUsd.toFixed(2)}
+          </span>
+        </div>
+        <div style="font-size:12px;color:#cbd5e1;margin:4px 0;">${esc(o.resumen)}</div>
+        <div class="row-between muted">
+          <span>${esc(o.metodoPago || 'Abierta')} · ${esc(o.fechaHora)}</span>
+          ${o.captureUrl ? `<a href="${esc(o.captureUrl)}" target="_blank" style="color:var(--accent);font-weight:700;">📎 Capture</a>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function promptRate() {
+    const val = prompt('Nueva tasa Bs / USD:', state.rate);
+    if (!val) return;
+    const num = Number(val.replace(',', '.'));
+    if (!num || num <= 0) return showToast('Tasa inválida', '#dc2626');
+    state.rate = num;
+    saveLocal();
+    renderAll();
+    try {
+      await callBackend('updateExchangeRate', num);
+      showToast(`✅ Tasa actualizada a Bs ${num}`, '#16a34a');
+    } catch (_) {
+      state.queue.push({ fn: 'updateExchangeRate', payload: num });
+      saveLocal();
+      showToast('Tasa guardada local (se sincronizará luego)', '#d97706');
+    }
+  }
+
+  function openQrModal() {
+    const img = document.getElementById('savedQrImg');
+    if (state.qrImg) { img.src = state.qrImg; img.style.display = 'block'; }
+    else img.style.display = 'none';
+    document.getElementById('savedPayText').textContent = state.payText || 'Sin datos de Pago Móvil guardados aún.';
+    document.getElementById('payTextEdit').value = state.payText || '';
+    document.getElementById('qrModal').classList.add('open');
+  }
+
+  function saveQrImage(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      state.qrImg = e.target.result;
+      saveLocal();
+      openQrModal();
+      showToast('✅ QR guardado', '#16a34a');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function savePayText() {
+    state.payText = document.getElementById('payTextEdit').value.trim();
+    saveLocal();
+    openQrModal();
+    showToast('✅ Datos guardados', '#16a34a');
+  }
+
+  function openConfigModal() {
+    document.getElementById('apiUrlInput').value = state.apiUrl || '';
+    const box = document.getElementById('stockAdjustList');
+    box.innerHTML = state.menu.map(m => `
+      <div class="row-between" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <span>${esc(m.producto)} <span class="muted">(vend: ${m.vendidos})</span></span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <input id="stk_${m.id}" type="number" value="${m.stockInicial}" style="width:68px;padding:6px;" />
+          <button class="icon-btn" onclick="saveItemStock('${m.id}')">OK</button>
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('configModal').classList.add('open');
+  }
+
+  function saveApiUrl() {
+    state.apiUrl = document.getElementById('apiUrlInput').value.trim();
+    saveLocal();
+    closeModal('configModal');
+    syncAll();
+  }
+
+  async function saveItemStock(id) {
+    const val = Number(document.getElementById('stk_' + id).value);
+    if (isNaN(val) || val < 0) return;
+    try {
+      const res = await callBackend('adjustMenuStock', { id, stockInicial: val });
+      if (res && res.ok) {
+        state.menu = res.menu;
+        saveLocal();
+        renderAll();
+        showToast('✅ Stock actualizado', '#16a34a');
+      }
+    } catch (_) {
+      showToast('Error al actualizar stock (sin red)', '#dc2626');
+    }
+  }
+
+  function switchView(name, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  window.addEventListener('online', () => { flushQueue().then(syncAll); });
+  loadLocal();
+  renderAll();
+  syncAll();
+  if (!IS_GAS && 'serviceWorker' in navigator) {
+    const regSw = () => navigator.serviceWorker.register('./sw.js').catch(() => {});
+    if (document.readyState === 'complete') regSw();
+    else window.addEventListener('load', regSw);
+  }
+</script>
+</body>
+</html>
