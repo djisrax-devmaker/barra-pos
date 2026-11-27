@@ -1,7 +1,8 @@
-const CACHE_NAME = 'irly-barra-pos-v2';
+const CACHE_NAME = 'irly-barra-pos-v3';
 const ASSETS = [
   './',
   './index.html',
+  './checklist.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'

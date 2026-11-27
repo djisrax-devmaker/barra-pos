@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Checklist Salida · Barra POS</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 40px;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+    }
+    .row-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .brand { font-weight: 800; font-size: 16px; }
+    .pill-link {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .progress-wrap {
+      margin-top: 10px;
+      background: var(--card);
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.2s ease;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .btn-sm {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-sm.active { border-color: var(--accent); color: var(--accent); }
+    .container { padding: 12px; max-width: 640px; margin: 0 auto; }
+    .cat-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin: 16px 0 8px;
+    }
+    .item-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: opacity 0.15s, border-color 0.15s;
+    }
+    .item-card.done {
+      opacity: 0.5;
+      border-color: rgba(34, 197, 94, 0.35);
+    }
+    .check-box {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      border-radius: 7px;
+      border: 2px solid var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+      margin-top: 1px;
+    }
+    .item-card.done .check-box {
+      background: var(--green);
+      border-color: var(--green);
+      color: #052e16;
+    }
+    .item-label { font-size: 14px; font-weight: 600; line-height: 1.35; }
+    .item-card.done .item-label { text-decoration: line-through; }
+    .item-note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .add-box {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .btn-add {
+      background: var(--green);
+      color: #052e16;
+      border: none;
+      border-radius: 10px;
+      padding: 0 16px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="row-between">
+    <div class="brand">✅ Checklist Salida (5PM–9PM)</div>
+    <a href="./index.html" class="pill-link">🍹 Barra POS</a>
+  </div>
+  <div class="progress-wrap"><div id="progBar" class="progress-bar"></div></div>
+  <div class="controls">
+    <span id="progText">0 / 0 listos (0%)</span>
+    <div style="display:flex;gap:6px;">
+      <button id="filterBtn" class="btn-sm" onclick="toggleFilter()">Solo pendientes</button>
+      <button class="btn-sm" onclick="resetAll()">Reiniciar</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div id="listRoot"></div>
+
+  <div class="add-box">
+    <input id="customInput" type="text" placeholder="Agregar algo extra que recordaste..." onkeydown="if(event.key==='Enter')addCustom()" />
+    <button class="btn-add" onclick="addCustom()">+ Agregar</button>
+  </div>
+</div>
+
+<script>
+  const LS_KEY = 'irly_barra_checklist_v1';
+
+  const DEFAULT_GROUPS = [
+    {
+      title: '1. Licores y Vinos',
+      items: [
+        { id: 'l1', label: 'Aperitivo Spritz Santero 9-5-8 (750ml)' },
+        { id: 'l2', label: 'Vino Espumoso Paris/Den (2 × 750ml)', note: 'Llevarlos fríos si es posible' },
+        { id: 'l3', label: 'Whisky Black & White (1L)' },
+        { id: 'l4', label: 'Tequila Chiapas (700ml)' },
+        { id: 'l5', label: 'Vodka Relative (700ml)' },
+        { id: 'l6', label: 'Sangría Caraqueña (1.75L)', note: 'Para Tinto de Verano (cortesía)' },
+        { id: 'l7', label: 'Ron Blanco de casa (2 × 1L)', note: 'Mojito y Cuba Libre' },
+        { id: 'l8', label: 'Curazao Azul de casa', note: 'Laguna Azul' }
+      ]
+    },
+    {
+      title: '2. Mezcladores, Frutas y Endulzantes',
+      items: [
+        { id: 'm1', label: 'Glup Fresh Limón (3 × 2L)', note: '+ 1–2 refrescos extra si compras p/ vender solos' },
+        { id: 'm2', label: 'Coca-Cola (1 × 2L)' },
+        { id: 'm3', label: 'Yukery Naranja (1.5L)' },
+        { id: 'm4', label: 'Agua Minalba Sparkling Original (1L)', note: 'Whisky / Spritz clásico' },
+        { id: 'm5', label: 'Agua Minalba Sparkling Limón (1L)' },
+        { id: 'm6', label: 'Agua Sparkling Toronja (2 × 500ml)' },
+        { id: 'm7', label: 'Jarabes de casa (Cereza, Granadina, Limón)' },
+        { id: 'm8', label: 'Azúcar (1 kg) o jarabe simple ya hecho', note: 'Jarabe simple en botella ahorra tiempo en barra' },
+        { id: 'm9', label: 'Limones (~3.9 kg) + Hierbabuena (1 paq)', note: 'Hierbabuena en bolsa/servilleta húmeda' },
+        { id: 'm10', label: 'Frutas Tinto: Duraznos + Kiwi + Arándanos', note: 'Llevar lavadas y en envase cerrado' }
+      ]
+    },
+    {
+      title: '3. Compras en el camino y Frío',
+      items: [
+        { id: 'f1', label: 'Cava / Cooler' },
+        { id: 'f2', label: 'Hielo: 2–3 bolsas grandes de 5 kg (10–15 kg)', note: 'Anotar el costo real para el cierre' }
+      ]
+    },
+    {
+      title: '4. Descartables y Herramientas de Barra',
+      items: [
+        { id: 'd1', label: 'Vasos 12 oz (123 und) + Tapas domo (~100)' },
+        { id: 'd2', label: 'Vasos 10 oz (100 und)' },
+        { id: 'd3', label: 'Vasos Shot 1 oz (50 und)' },
+        { id: 'd4', label: 'Pitillos (150 und) + Servilletas (1 paq)' },
+        { id: 'd5', label: 'Bolsas de basura (Bolsa AAA + extras)' },
+        { id: 'd6', label: 'Jigger / Medidor (1 / 1.5 / 2 oz)' },
+        { id: 'd7', label: 'Cuchillo + Tabla de picar + Exprimidor de limones' },
+        { id: 'd8', label: 'Macerador + Cucharilla larga / Agitador' },
+        { id: 'd9', label: 'Sacacorchos / Destapador' },
+        { id: 'd10', label: 'Pinza/pala de hielo + 2 paños limpios' }
+      ]
+    },
+    {
+      title: '5. App, Cobros y Energía',
+      items: [
+        { id: 'a1', label: 'Limpiar pruebas en Google Sheet y darle ↻ en Barra POS', note: 'Borrar filas de prueba y volver Vendidos a 0' },
+        { id: 'a2', label: 'Verificar Tasa del día (Bs 926.36/$)' },
+        { id: 'a3', label: 'QR / Datos Pago Móvil guardados en botón QR', note: 'Y/o QR impreso en barra' },
+        { id: 'a4', label: 'Sencillo en efectivo ($1, $5 / Bs)' },
+        { id: 'a5', label: 'Teléfono al 100% + Powerbank + Cable' }
+      ]
+    }
+  ];
+
+  let state = { checked: {}, custom: [], onlyPending: false };
+
+  function load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+      if (saved.checked) state.checked = saved.checked;
+      if (Array.isArray(saved.custom)) state.custom = saved.custom;
+      if (typeof saved.onlyPending === 'boolean') state.onlyPending = saved.onlyPending;
+    } catch (_) {}
+  }
+
+  function save() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (_) {}
+  }
+
+  function toggleItem(id) {
+    state.checked[id] = !state.checked[id];
+    save();
+    render();
+  }
+
+  function toggleFilter() {
+    state.onlyPending = !state.onlyPending;
+    save();
+    render();
+  }
+
+  function resetAll() {
+    if (!confirm('¿Desmarcar todo el checklist?')) return;
+    state.checked = {};
+    save();
+    render();
+  }
+
+  function addCustom() {
+    const inp = document.getElementById('customInput');
+    const txt = inp.value.trim();
+    if (!txt) return;
+    state.custom.push({ id: 'c_' + Date.now(), label: txt });
+    inp.value = '';
+    save();
+    render();
+  }
+
+  function render() {
+    const groups = state.custom.length
+      ? DEFAULT_GROUPS.concat([{ title: '6. Extras agregados', items: state.custom }])
+      : DEFAULT_GROUPS;
+
+    let total = 0, done = 0;
+    groups.forEach(g => g.items.forEach(it => {
+      total++;
+      if (state.checked[it.id]) done++;
+    }));
+
+    const pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById('progBar').style.width = pct + '%';
+    document.getElementById('progText').textContent = `${done} / ${total} listos (${pct}%)`;
+    document.getElementById('filterBtn').classList.toggle('active', state.onlyPending);
+
+    const root = document.getElementById('listRoot');
+    root.innerHTML = groups.map(g => {
+      const visible = state.onlyPending ? g.items.filter(it => !state.checked[it.id]) : g.items;
+      if (!visible.length) return '';
+      return `
+        <div class="cat-title">${esc(g.title)}</div>
+        ${visible.map(it => {
+          const isDone = !!state.checked[it.id];
+          return `
+            <div class="item-card ${isDone ? 'done' : ''}" onclick="toggleItem('${it.id}')">
+              <div class="check-box">${isDone ? '✓' : ''}</div>
+              <div>
+                <div class="item-label">${esc(it.label)}</div>
+                ${it.note ? `<div class="item-note">${esc(it.note)}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      `;
+    }).join('') || '<div style="text-align:center;color:var(--green);padding:24px;font-weight:800;">🎉 ¡Todo empacado y listo para salir!</div>';
+  }
+
+  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  load();
+  render();
+</script>
+</body>
+</html>
